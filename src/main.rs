@@ -3,27 +3,25 @@ use boxcars::{ActorId, Attribute, ObjectId, ParserBuilder};
 use boxcars::{ParseError, Replay};
 
 use std::collections::HashMap;
-use std::error;
-use std::fs;
+use std::error::{self, Error};
+use std::fs::{self, File};
 use std::io::{self, Read};
 
-fn main() {
+fn main() -> Result<(), Box<dyn error::Error>> {
     let filename = r"data\EBF5B75F4A6B60FF1F612AA134135E69.replay";
 
-    pings(filename).unwrap();
-    //run(filename).unwrap();
-}
-
-fn parse_rl(data: &[u8]) -> Result<Replay, ParseError> {
-    boxcars::ParserBuilder::new(data)
-        .must_parse_network_data()
-        .parse()
-}
-
-fn run(filename: &str) -> Result<(), Box<dyn error::Error>> {
     let buffer = fs::read(filename)?;
-    let replay = parse_rl(&buffer)?;
+    let replay = boxcars::ParserBuilder::new(&buffer)
+        .must_parse_network_data()
+        .parse()?;
 
+    pings(&replay)?;
+    run(&replay)?;
+
+    Ok(())
+}
+
+fn run(replay: &Replay) -> Result<(), Box<dyn error::Error>> {
     let frames = &replay.network_frames.as_ref().unwrap().frames;
 
     let object_id = frames[132].updated_actors[2].object_id;
@@ -56,7 +54,7 @@ fn run(filename: &str) -> Result<(), Box<dyn error::Error>> {
     //    println!("{:?}", rigid_body.linear_velocity.unwrap());
     // }
 
-    // serde_json::to_writer(&File::create(r#"D:\replay.json"#)?, &replay)?;
+    //serde_json::to_writer_pretty(&File::create(r#"D:\replay.json"#)?, &replay)?;
     Ok(())
 }
 
@@ -77,10 +75,7 @@ fn find_object_id(replay: &Replay, name: &str) -> Result<ObjectId, Box<dyn error
     Ok(id)
 }
 
-fn pings(filename: &str) -> Result<(), Box<dyn error::Error>> {
-    let buffer = fs::read(filename)?;
-    let replay = parse_rl(&buffer)?;
-
+fn pings(replay: &Replay) -> Result<(), Box<dyn error::Error>> {
     // This may be super confusing, but this is what we're doing:
     //
     // The network data sees a new car:
@@ -138,13 +133,13 @@ fn pings(filename: &str) -> Result<(), Box<dyn error::Error>> {
     eprintln!("player_name_id: {}, ping_id: {}", player_name_id, ping_id);
 
     let mut actor_pings: Vec<PlayerPings> = Vec::new();
-    let network = replay.network_frames.unwrap();
+    let network = replay.network_frames.as_ref().unwrap();
 
-    for frame in network.frames {
-        for attr in frame.updated_actors {
+    for frame in &network.frames {
+        for attr in &frame.updated_actors {
             if attr.object_id == player_name_id {
                 let act_id = attr.actor_id;
-                if let Attribute::String(name) = attr.attribute {
+                if let Attribute::String(name) = attr.attribute.clone() {
                     // Fill in the name of the latest entry with the same
                     // actor id that either has the same name or no name.
                     let entry = actor_pings.iter().rev().rposition(|x| {
