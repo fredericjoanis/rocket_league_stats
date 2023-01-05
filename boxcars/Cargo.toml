@@ -1,0 +1,32 @@
+[package]
+authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
+license = "MIT"
+name = "boxcars"
+readme = "README.md"
+edition = "2018"
+repository = "https://github.com/nickbabcock/boxcars"
+description = "Rocket league replay parser"
+keywords = ["rocket-league"]
+categories = ["parsing"]
+version = "0.9.8"
+include = ["src/**/*.rs", "Cargo.toml", "build.rs"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+encoding_rs = "0.8"
+phf = { version = "0.10", features = ["macros"] }
+fnv = "1.0"
+bitter = "0.6"
+
+[dev-dependencies]
+serde_json = "1"
+criterion = "0.3"
+
+[profile.bench]
+lto = true
+codegen-units = 1
+
+[[bench]]
+path = "benches/bench_boxcars.rs"
+name = "bench_boxcars"
+harness = false

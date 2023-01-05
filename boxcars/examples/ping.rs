@@ -1,64 +1,10 @@
-use boxcars::Trajectory;
-use boxcars::{ActorId, Attribute, ObjectId, ParserBuilder};
-use boxcars::{ParseError, Replay};
+//! This example demonstrates searching the network data, associating player cars with their names
+//! in the effort to track ping times. The input is consumed as stdin.
 
+use boxcars::{ActorId, Attribute, ObjectId, ParserBuilder, Replay};
 use std::collections::HashMap;
 use std::error;
-use std::fs;
 use std::io::{self, Read};
-
-fn main() {
-    let filename = r"data\EBF5B75F4A6B60FF1F612AA134135E69.replay";
-
-    pings(filename).unwrap();
-    //run(filename).unwrap();
-}
-
-fn parse_rl(data: &[u8]) -> Result<Replay, ParseError> {
-    boxcars::ParserBuilder::new(data)
-        .must_parse_network_data()
-        .parse()
-}
-
-fn run(filename: &str) -> Result<(), Box<dyn error::Error>> {
-    let buffer = fs::read(filename)?;
-    let replay = parse_rl(&buffer)?;
-
-    let frames = &replay.network_frames.as_ref().unwrap().frames;
-
-    let object_id = frames[132].updated_actors[2].object_id;
-    let name_id = frames[132].updated_actors[2].actor_id;
-
-    let trajectories: Vec<Trajectory> = frames
-        .iter()
-        .flat_map(|x| x.new_actors.iter())
-        .map(|x| x.initial_trajectory)
-        .collect();
-
-    println!("{:?}", trajectories[0].location.unwrap());
-
-    let bodies: Vec<&boxcars::RigidBody> = frames
-        .iter()
-        .flat_map(|x| x.updated_actors.iter())
-        .filter_map(|x| {
-            if let boxcars::Attribute::RigidBody(r) = &x.attribute {
-                Some(r)
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    println!("{:?}", bodies[0].location);
-
-    //let frame = network_frames.frames[132].clone();
-    // if let boxcars::Attribute::RigidBody(rigid_body) = frame.updated_actors[2].attribute {
-    //    println!("{:?}", rigid_body.linear_velocity.unwrap());
-    // }
-
-    // serde_json::to_writer(&File::create(r#"D:\replay.json"#)?, &replay)?;
-    Ok(())
-}
 
 #[derive(Debug, Clone)]
 struct PlayerPings {
@@ -77,9 +23,14 @@ fn find_object_id(replay: &Replay, name: &str) -> Result<ObjectId, Box<dyn error
     Ok(id)
 }
 
-fn pings(filename: &str) -> Result<(), Box<dyn error::Error>> {
-    let buffer = fs::read(filename)?;
-    let replay = parse_rl(&buffer)?;
+fn main() -> Result<(), Box<dyn error::Error>> {
+    let mut data = Vec::new();
+    io::stdin().read_to_end(&mut data)?;
+
+    let replay = ParserBuilder::new(&data[..])
+        .on_error_check_crc()
+        .must_parse_network_data()
+        .parse()?;
 
     // This may be super confusing, but this is what we're doing:
     //

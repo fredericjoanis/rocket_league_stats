@@ -1,0 +1,35 @@
+[package]
+name = "boxcars-fuzz"
+version = "0.0.1"
+authors = ["Automatically generated"]
+publish = false
+edition = "2018"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies.boxcars]
+path = ".."
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "crc-body"
+path = "fuzz_targets/crc-body.rs"
+
+[[bin]]
+name = "no-crc-body"
+path = "fuzz_targets/no-crc-body.rs"
+
+[[bin]]
+name = "crc-no-body"
+path = "fuzz_targets/crc-no-body.rs"
+
+[[bin]]
+name = "no-crc-no-body"
+path = "fuzz_targets/no-crc-no-body.rs"

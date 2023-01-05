@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-boxcars = "0.9.5"
+boxcars = { path = "boxcars" }
 serde_json = "1.0.85"
